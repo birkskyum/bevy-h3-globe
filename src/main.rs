@@ -197,20 +197,36 @@ fn setup(
   for polygon in zero_indexes {
     let boundary = libh3::h3_to_geo_boundary(polygon);
     
-      let h3material = StandardMaterial {
-        base_color: Color::rgba(rand::random(), 0.50, 0.75, 1.0),
-        double_sided: false,
-        unlit: true,
-        ..Default::default()
-      };
+    let h3material = StandardMaterial {
+      base_color: Color::rgba(rand::random(), 0.50, 0.75, 1.0),
+      double_sided: false,
+      unlit: true,
+      ..Default::default()
+    };
 
-      commands.spawn_bundle(PbrBundle {
-        mesh: meshes.add(Mesh::from(H3Polygon { altitude: 1.0, geo_boundary: boundary })),
-        material: materials.add(h3material.into()),
-        ..Default::default()
-      });
+    commands.spawn_bundle(PbrBundle {
+      mesh: meshes.add(Mesh::from(H3Polygon { altitude: 1.0, geo_boundary: boundary })),
+      material: materials.add(h3material.into()),
+      ..Default::default()
+    });
+
+    // for child in libh3::h3_to_children(polygon,2) {
+    //   let boundary = libh3::h3_to_geo_boundary(child);
+    
+    //   let h3material = StandardMaterial {
+    //     base_color: Color::rgba(rand::random(), 0.50, 0.75, 1.0),
+    //     double_sided: false,
+    //     unlit: true,
+    //     ..Default::default()
+    //   };
+  
+    //   commands.spawn_bundle(PbrBundle {
+    //     mesh: meshes.add(Mesh::from(H3Polygon { altitude: 1.0, geo_boundary: boundary })),
+    //     material: materials.add(h3material.into()),
+    //     ..Default::default()
+    //   });
+    // }
       
   }
-  
   
 }
