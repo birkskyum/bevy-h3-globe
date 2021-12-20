@@ -6,10 +6,7 @@ use bevy::prelude::*;
 use bevy::input::mouse::{MouseWheel,MouseMotion};
 use bevy::render::camera::PerspectiveProjection;
 
-// ANCHOR: example
-/// Tags an entity as capable of panning and orbiting.
 struct PanOrbitCamera {
-    /// The "focus point" to orbit around. It is automatically updated when panning the camera
     pub focus: Vec3,
     pub radius: f32,
     pub upside_down: bool,
@@ -34,8 +31,8 @@ fn pan_orbit_camera(
     mut query: Query<(&mut PanOrbitCamera, &mut Transform, &PerspectiveProjection)>,
 ) {
     // change input mapping for orbit and panning here
-    let orbit_button = MouseButton::Right;
-    let pan_button = MouseButton::Middle;
+    let orbit_button = MouseButton::Left;
+    let pan_button = MouseButton::Right;
 
     let mut pan = Vec2::ZERO;
     let mut rotation_move = Vec2::ZERO;
@@ -195,6 +192,8 @@ impl From<H3Polygon> for Mesh {
 fn main() {
   App::build()
     .insert_resource(Msaa { samples: 4 })
+    .insert_resource(ClearColor(Color::rgb(0.1, 0.1, 0.1)))
+
     .add_plugins(DefaultPlugins)
     .add_startup_system(setup.system())
     .add_startup_system(spawn_camera.system())
