@@ -1,8 +1,6 @@
 use bevy::{prelude::*, render::{mesh::Indices, pipeline::PrimitiveTopology}};
 use libh3::{self, GeoCoord};
 use map_3d;
-use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
-use bevy::prelude::*;
 use bevy::input::mouse::{MouseWheel,MouseMotion};
 use bevy::render::camera::PerspectiveProjection;
 
@@ -146,7 +144,7 @@ impl From<H3Polygon> for Mesh {
         let divisor = 1000000.0;
         let smallercords = [x as f32 / divisor as f32, y as f32 / divisor as f32, z as f32 / divisor as f32];
 
-        println!("x{:?}, y{:?}, z{:?}",x, y, z);
+        //println!("x{:?}, y{:?}, z{:?}",x, y, z);
 
         vertices.push(([smallercords[0], smallercords[1], smallercords[2]], [0.0, 1.0, 0.0], [1.0, 1.0]))
       }
