@@ -253,6 +253,7 @@ dependencies = [
  "h3ron",
  "h3ron-h3-sys",
  "libh3",
+ "map_3d",
 ]
 
 [[package]]
@@ -2309,6 +2310,12 @@ checksum = "62bb907fe88d54d8d9ce32a3cceab4218ed2f6b7d35617cafe9adf84e43919cb"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "map_3d"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed9c839122a3076d28500229cfebcd570d7dab4b300449dbf7f02ca17b0fe518"
 
 [[package]]
 name = "matchers"
