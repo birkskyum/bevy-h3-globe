@@ -1,6 +1,10 @@
 use bevy::prelude::*;
+use libh3;
 
 fn main() {
+  let zero_indexes = libh3::get_res_0_indexes();
+  assert_eq!(libh3::get_res_0_indexes().len(), 122);
+  println!("{:?}", zero_indexes);
   App::build()
     .insert_resource(Msaa { samples: 4 })
     .add_plugins(DefaultPlugins)
