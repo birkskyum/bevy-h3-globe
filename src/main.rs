@@ -1,9 +1,16 @@
-use bevy::{prelude::*, render::{mesh::Indices, pipeline::PrimitiveTopology}};
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+use bevy::input::mouse::{MouseMotion, MouseWheel};
+use bevy::render::camera::PerspectiveProjection;
+use bevy::{
+    prelude::*,
+    render::{mesh::Indices, render_resource::PrimitiveTopology},
+};
+
 use libh3::{self, GeoCoord};
 use map_3d;
-use bevy::input::mouse::{MouseWheel,MouseMotion};
-use bevy::render::camera::PerspectiveProjection;
 
+#[derive(Component, Debug, Reflect)]
+#[reflect(Component)]
 struct PanOrbitCamera {
     pub focus: Vec3,
     pub radius: f32,
@@ -30,7 +37,7 @@ fn pan_orbit_camera(
 ) {
     // change input mapping for orbit and panning here
     let orbit_button = MouseButton::Left;
-    let pan_button = MouseButton::Right;
+    // let pan_button = MouseButton::Right;
 
     let mut pan = Vec2::ZERO;
     let mut rotation_move = Vec2::ZERO;
@@ -41,12 +48,13 @@ fn pan_orbit_camera(
         for ev in ev_motion.iter() {
             rotation_move += ev.delta;
         }
-    } else if input_mouse.pressed(pan_button) {
-        // Pan only if we're not rotating at the moment
-        for ev in ev_motion.iter() {
-            pan += ev.delta;
-        }
     }
+    // else if input_mouse.pressed(pan_button) {
+    //     // Pan only if we're not rotating at the moment
+    //     for ev in ev_motion.iter() {
+    //         pan += ev.delta;
+    //     }
+    // }
     for ev in ev_scroll.iter() {
         scroll += ev.y;
     }
@@ -68,10 +76,15 @@ fn pan_orbit_camera(
             let window = get_primary_window_size(&windows);
             let delta_x = {
                 let delta = rotation_move.x / window.x * std::f32::consts::PI * 2.0;
-                if pan_orbit.upside_down { -delta } else { delta }
+                if pan_orbit.upside_down {
+                    -delta
+                } else {
+                    delta
+                }
             };
             let delta_y = rotation_move.y / window.y * std::f32::consts::PI;
             let yaw = Quat::from_rotation_y(-delta_x);
+            //println!("{:?}",transform);
             let pitch = Quat::from_rotation_x(-delta_y);
             transform.rotation = yaw * transform.rotation; // rotate around global y axis
             transform.rotation = transform.rotation * pitch; // rotate around local x axis
@@ -90,7 +103,7 @@ fn pan_orbit_camera(
             any = true;
             pan_orbit.radius -= scroll * pan_orbit.radius * 0.2;
             // dont allow zoom to reach zero or you get stuck
-            pan_orbit.radius = f32::max(pan_orbit.radius, 0.05);
+            pan_orbit.radius = f32::max(pan_orbit.radius, 7.9);
         }
 
         if any {
@@ -98,11 +111,12 @@ fn pan_orbit_camera(
             // parent = x and y rotation
             // child = z-offset
             let rot_matrix = Mat3::from_quat(transform.rotation);
-            transform.translation = pan_orbit.focus + rot_matrix.mul_vec3(Vec3::new(0.0, 0.0, pan_orbit.radius));
+            transform.translation =
+                pan_orbit.focus + rot_matrix.mul_vec3(Vec3::new(0.0, 0.0, pan_orbit.radius));
         }
     }
 }
-
+/**/
 fn get_primary_window_size(windows: &Res<Windows>) -> Vec2 {
     let window = windows.get_primary().unwrap();
     let window = Vec2::new(window.width() as f32, window.height() as f32);
@@ -114,45 +128,50 @@ fn spawn_camera(mut commands: Commands) {
     let translation = Vec3::new(-20.0, 35.5, 15.0);
     let radius = translation.length();
 
-    commands.spawn_bundle(PerspectiveCameraBundle {
-        transform: Transform::from_translation(translation)
-            .looking_at(Vec3::ZERO, Vec3::Y),
-        ..Default::default()
-    }).insert(PanOrbitCamera {
-        radius,
-        ..Default::default()
-    });
+    commands
+        .spawn_bundle(PerspectiveCameraBundle {
+            transform: Transform::from_translation(translation).looking_at(Vec3::ZERO, Vec3::Y),
+            ..Default::default()
+        })
+        .insert(PanOrbitCamera {
+            radius,
+            ..Default::default()
+        });
 }
-
 
 pub struct H3Polygon {
     /// The total side length of the square.
     pub altitude: f64,
-    pub geo_boundary: Vec<GeoCoord>
+    pub geo_boundary: Vec<GeoCoord>,
 }
-
 
 impl From<H3Polygon> for Mesh {
     fn from(h3polygon: H3Polygon) -> Self {
+        let mut vertices = Vec::new();
 
-      let mut vertices = Vec::new();
-      
-      for geocoord in h3polygon.geo_boundary {
+        for geocoord in h3polygon.geo_boundary {
+            let (x, y, z) = map_3d::geodetic2ecef(geocoord.lat, geocoord.lon, h3polygon.altitude);
 
-        let (x, y, z ) = map_3d::geodetic2ecef(geocoord.lat, geocoord.lon, h3polygon.altitude);
-        
-        let divisor = 1000000.0;
-        let smallercords = [x as f32 / divisor as f32, y as f32 / divisor as f32, z as f32 / divisor as f32];
+            let divisor = 1000000.0;
+            let smallercords = [
+                x as f32 / divisor as f32,
+                y as f32 / divisor as f32,
+                z as f32 / divisor as f32,
+            ];
 
-        //println!("x{:?}, y{:?}, z{:?}",x, y, z);
+            //println!("x{:?}, y{:?}, z{:?}",x, y, z);
 
-        vertices.push(([smallercords[0], smallercords[1], smallercords[2]], [0.0, 1.0, 0.0], [1.0, 1.0]))
-      }
+            vertices.push((
+                [smallercords[0], smallercords[1], smallercords[2]],
+                [0.0, 1.0, 0.0],
+                [1.0, 1.0],
+            ))
+        }
 
         let indices = match vertices.len() {
-          5 => {Indices::U32(vec![0, 1, 2, 0, 2, 3, 0, 3, 4])}
-          6 => {Indices::U32(vec![0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5])}
-          _ => {Indices::U32(vec![])}
+            5 => Indices::U32(vec![0, 1, 2, 0, 2, 3, 0, 3, 4]),
+            6 => Indices::U32(vec![0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5]),
+            _ => Indices::U32(vec![]),
         };
 
         let mut positions = Vec::new();
@@ -173,60 +192,75 @@ impl From<H3Polygon> for Mesh {
     }
 }
 
-
 fn main() {
-  App::build()
-    .insert_resource(Msaa { samples: 4 })
-    .insert_resource(ClearColor(Color::rgb(0.1, 0.1, 0.1)))
-
-    .add_plugins(DefaultPlugins)
-    .add_startup_system(setup.system())
-    .add_startup_system(spawn_camera.system())
-    .add_system(pan_orbit_camera.system())
-    .run();
+    App::new()
+        .insert_resource(Msaa { samples: 4 })
+        .insert_resource(ClearColor(Color::rgb(0.1, 0.1, 0.1)))
+        .add_plugins(DefaultPlugins)
+        .add_plugin(LogDiagnosticsPlugin::default())
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        .add_startup_system(setup)
+        .add_startup_system(spawn_camera)
+        .add_system(pan_orbit_camera)
+        .run();
 }
 
 fn setup(
-  mut commands: Commands,
-  mut meshes: ResMut<Assets<Mesh>>,
-  mut materials: ResMut<Assets<StandardMaterial>>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-  let zero_indexes = libh3::get_res_0_indexes();
-  assert_eq!(libh3::get_res_0_indexes().len(), 122);
+    let zero_indexes = libh3::get_res_0_indexes();
+    assert_eq!(libh3::get_res_0_indexes().len(), 122);
 
-  for polygon in zero_indexes {
-    let boundary = libh3::h3_to_geo_boundary(polygon);
-    
-    let h3material = StandardMaterial {
-      base_color: Color::rgba(rand::random(), 0.50, 0.75, 1.0),
-      double_sided: false,
-      unlit: true,
-      ..Default::default()
-    };
+    for polygon in zero_indexes {
+        let boundary = libh3::h3_to_geo_boundary(polygon);
 
-    commands.spawn_bundle(PbrBundle {
-      mesh: meshes.add(Mesh::from(H3Polygon { altitude: 1.0, geo_boundary: boundary })),
-      material: materials.add(h3material.into()),
-      ..Default::default()
+        let h3material = StandardMaterial {
+            base_color: Color::rgba(rand::random(), 0.50, 0.75, 1.0),
+            double_sided: false,
+            unlit: true,
+            ..Default::default()
+        };
+
+        commands.spawn_bundle(PbrBundle {
+            mesh: meshes.add(Mesh::from(H3Polygon {
+                altitude: 1.0,
+                geo_boundary: boundary,
+            })),
+            material: materials.add(h3material.into()),
+            ..Default::default()
+        });
+
+        for child in libh3::h3_to_children(polygon, 2) {
+            let boundary = libh3::h3_to_geo_boundary(child);
+
+            let h3material = StandardMaterial {
+                base_color: Color::rgba(rand::random(), 0.50, 0.75, 1.0),
+                double_sided: false,
+                unlit: true,
+                ..Default::default()
+            };
+
+            commands.spawn_bundle(PbrBundle {
+                mesh: meshes.add(Mesh::from(H3Polygon {
+                    altitude: 1.0,
+                    geo_boundary: boundary,
+                })),
+                material: materials.add(h3material.into()),
+                ..Default::default()
+            });
+        }
+    }
+
+    // light
+    // commands.spawn_bundle(LightBundle {
+    //   transform: Transform::from_xyz(4.0, 8.0, 4.0),
+    //   ..Default::default()
+    // });
+    // camera
+    commands.spawn_bundle(PerspectiveCameraBundle {
+        transform: Transform::from_xyz(-20.0, 35.5, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..Default::default()
     });
-
-    // for child in libh3::h3_to_children(polygon,2) {
-    //   let boundary = libh3::h3_to_geo_boundary(child);
-    
-    //   let h3material = StandardMaterial {
-    //     base_color: Color::rgba(rand::random(), 0.50, 0.75, 1.0),
-    //     double_sided: false,
-    //     unlit: true,
-    //     ..Default::default()
-    //   };
-  
-    //   commands.spawn_bundle(PbrBundle {
-    //     mesh: meshes.add(Mesh::from(H3Polygon { altitude: 1.0, geo_boundary: boundary })),
-    //     material: materials.add(h3material.into()),
-    //     ..Default::default()
-    //   });
-    // }
-      
-  }
-  
 }

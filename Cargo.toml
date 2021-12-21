@@ -5,9 +5,12 @@ edition = "2021"
 
 
 [dependencies]
-bevy = { version = "0.5.0", features = ["dynamic"] }
+bevy = { git = "https://github.com/bevyengine/bevy", rev = "c04dfc1174729781219c257fdd1e379a2f1a1a52" }
 h3ron = "0.13.0"
 h3ron-h3-sys = "0.12.0"
 libh3 = "0.1.8"
 map_3d = "0.1.4"
 rand = "0.8.4"
+
+[profile.dev]
+opt-level = 3
