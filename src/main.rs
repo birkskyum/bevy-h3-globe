@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::render::camera::PerspectiveProjection;
@@ -26,6 +28,11 @@ impl Default for PanOrbitCamera {
         }
     }
 }
+
+// fn add_high_resolution() {
+//   println!("add resoltuion");
+
+// }
 
 /// Pan the camera with middle mouse click, zoom with scroll wheel, orbit with right mouse click.
 fn pan_orbit_camera(
@@ -84,7 +91,6 @@ fn pan_orbit_camera(
             };
             let delta_y = rotation_move.y / window.y * std::f32::consts::PI;
             let yaw = Quat::from_rotation_y(-delta_x);
-            //println!("{:?}",transform);
             let pitch = Quat::from_rotation_x(-delta_y);
             transform.rotation = yaw * transform.rotation; // rotate around global y axis
             transform.rotation = transform.rotation * pitch; // rotate around local x axis
@@ -149,9 +155,15 @@ impl From<H3Polygon> for Mesh {
     fn from(h3polygon: H3Polygon) -> Self {
         let mut vertices = Vec::new();
 
+        println!("new");
         for geocoord in h3polygon.geo_boundary {
-            let (x, y, z) = map_3d::geodetic2ecef(geocoord.lat, geocoord.lon, h3polygon.altitude);
+            println!(
+                "{:?}, {:?}",
+                geocoord.lon / PI * 180.0,
+                geocoord.lat / PI * 180.0
+            );
 
+            let (x, y, z) = map_3d::geodetic2ecef(geocoord.lat, geocoord.lon, h3polygon.altitude);
             let divisor = 1000000.0;
             let smallercords = [
                 x as f32 / divisor as f32,
@@ -159,7 +171,7 @@ impl From<H3Polygon> for Mesh {
                 z as f32 / divisor as f32,
             ];
 
-            //println!("x{:?}, y{:?}, z{:?}",x, y, z);
+            // println!("x{:?}, y{:?}, z{:?}", x, y, z);
 
             vertices.push((
                 [smallercords[0], smallercords[1], smallercords[2]],
@@ -197,9 +209,10 @@ fn main() {
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(ClearColor(Color::rgb(0.1, 0.1, 0.1)))
         .add_plugins(DefaultPlugins)
-        .add_plugin(LogDiagnosticsPlugin::default())
-        .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        // .add_plugin(LogDiagnosticsPlugin::default())
+        // .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_startup_system(setup)
+        // .add_system(add_high_resolution)
         .add_startup_system(spawn_camera)
         .add_system(pan_orbit_camera)
         .run();
@@ -252,15 +265,4 @@ fn setup(
             });
         }
     }
-
-    // light
-    // commands.spawn_bundle(LightBundle {
-    //   transform: Transform::from_xyz(4.0, 8.0, 4.0),
-    //   ..Default::default()
-    // });
-    // camera
-    commands.spawn_bundle(PerspectiveCameraBundle {
-        transform: Transform::from_xyz(-20.0, 35.5, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..Default::default()
-    });
 }
